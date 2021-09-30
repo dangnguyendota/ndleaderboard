@@ -1,0 +1,357 @@
+syntax = "proto3";
+
+package ndleaderboard.api.v1;
+
+option go_package = ".;ndleaderboard_api_v1";
+
+import "google/protobuf/timestamp.proto";
+
+service NDLeaderboard {
+  // return server health
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse) {
+
+  }
+
+  // init leaderboards must be call before call other functions
+  // it init leaderboard list for other functions to use
+  rpc InitLeaderboards(InitLeaderboardsRequest) returns (Status) {
+  }
+
+  // remove a leaderboard
+  rpc RemoveLeaderboard(RemoveLeaderboardRequest) returns (Status) {
+  }
+
+  // write record to a leaderboard
+  rpc WriteLeaderboardRecord(WriteLeaderboardRecordRequest) returns (WriteLeaderboardRecordResponse) {
+
+  }
+
+  // get single record of a leaderboard
+  rpc GetRecord(GetRecordRequest) returns (GetRecordResponse) {
+
+  }
+
+  // get records of a leaderboard
+  rpc GetRecords(GetRecordsRequest) returns (GetRecordsResponse) {
+
+  }
+
+  // get records of a leaderboard in a page
+  // example: get all records in page 2 with page size = 100 will return record rank 100 to record rank 199
+  rpc GetPage(GetPageRequest) returns (GetPageResponse) {
+
+  }
+
+  // get records around a record in a leaderboard
+  rpc GetAroundMe(GetAroundMeRecordsRequest) returns (GetAroundMeRecordsResponse) {
+  }
+
+  // returns rank of a record in a leaderboard
+  rpc GetRank(GetRankRequest) returns (GetRankResponse) {
+
+  }
+
+  // returns the number of total records in a leaderboard
+  rpc TotalRecords(TotalRecordsRequest) returns (TotalRecordsResponse) {
+
+  }
+
+  // remove a record of a leaderboard
+  rpc RemoveRecord(RemoveRecordRequest) returns (RemoveRecordResponse) {
+
+  }
+
+  // remove multiple records of a leaderboard
+  rpc RemoveRecords(RemoveRecordsRequest) returns (RemoveRecordsResponse) {
+
+  }
+
+  // remove multiple records by range
+  rpc RemoveRecordsByRange(RemoveRecordsByRangeRequest) returns (RemoveRecordsByRangeResponse) {
+
+  }
+
+  // get top of records with highest rank
+  rpc GetTopRanking(GetTopRankingRequest) returns (GetTopRankingResponse) {
+
+  }
+
+  // update score of a record
+  rpc UpdateRecordScore(UpdateRecordScoreRequest) returns (UpdateRecordScoreResponse) {
+
+  }
+}
+
+// request to server to get server health
+message HealthCheckRequest {
+}
+
+message HealthCheckResponse {
+  // status is a string that describe the server health
+  string status = 1;
+}
+
+message Status {
+  // status code = 0 is success, otherwise is error
+  uint32 status_code = 1;
+
+  // describe the error
+  string description = 2;
+}
+
+message Record {
+  // record unique id
+  string id               = 1;
+  // score of record, leaderboard sorts records by score
+  int32  score            = 2;
+  // rank of record in the leaderboard
+  int32  rank             = 3;
+  // the last update time of this record
+  int64  last_update_time = 4;
+}
+
+// each leaderboard store multiple of records with rank and score
+message Leaderboard {
+  // leaderboard unique id
+  string                    leaderboard_id  = 1;
+
+  // sort by asc or desc
+  string                    sort            = 2;
+
+  // name of leaderboard
+  string                    title           = 3;
+
+  // describe this leaderboard
+  string                    description     = 4;
+
+  // time that leaderboard will be started
+  google.protobuf.Timestamp start_at        = 5;
+
+  // leaderboard will reset (remove all records) after each duration
+  // if reset_duration = 0, leaderboard will never be reset
+  // reset duration unit is hour
+  int64                     reset_duration  = 6;
+
+  // time that leaderboard will be removed
+  // if expires_at = null, leaderboard will never be removed
+  google.protobuf.Timestamp expires_at      = 7;
+
+  // the maximum of records that we can write to leaderboard
+  // if max_records = 0 the leaderboard will not limit the number of records
+  int32                     max_records     = 8;
+
+  // the number of hour that record can be kept in leaderboard
+  // if record_duration = 0, the record will be kept in leaderboard forever
+  int64                     record_duration = 9;
+
+  // time that leaderboard is created
+  google.protobuf.Timestamp created_at      = 10;
+
+  // the last time leaderboard was updated
+  google.protobuf.Timestamp updated_at      = 11;
+
+  // if false leaderboard will be removed in redis
+  bool                      active          = 12;
+}
+
+// when ndleaderboard receives init request
+// it will cache all leaderboard
+// every leaderboard not in this list can not be query
+message InitLeaderboardsRequest {
+  repeated Leaderboard leaderboards = 1;
+}
+
+message RemoveLeaderboardRequest {
+  string leaderboard_id = 1;
+}
+
+// write single record to leaderboard
+// if record is existed in the leaderboard, record score will be replaced
+message WriteLeaderboardRecordRequest {
+  // id of leaderboard
+  string leaderboard_id = 1;
+  // id of record
+  string record_id      = 2;
+  // score of record
+  int32  record_score   = 3;
+}
+
+message WriteLeaderboardRecordResponse {
+  // status response
+  Status status = 1;
+
+  // stored record
+  Record record = 2;
+}
+
+// get single record in the leaderboard
+message GetRecordRequest {
+  // the id of leaderboard
+  string leaderboard_id = 1;
+
+  // the id of record
+  string record_id      = 2;
+}
+
+message GetRecordResponse {
+  // status response
+  Status status = 1;
+
+  // the record we want to get
+  Record record = 2;
+}
+
+// allow to get multiple record at the same request
+message GetRecordsRequest {
+  // the id of leaderboard
+  string leaderboard_id = 1;
+
+  // the id of record split by ","
+  string record_ids     = 2;
+}
+
+message GetRecordsResponse {
+  // status response
+  Status          status  = 1;
+
+  // the record we want to get
+  repeated Record records = 2;
+}
+
+message GetPageRequest {
+  // if of leaderboard
+  string leaderboard_id = 1;
+
+  // the page number
+  int32  page_number    = 2;
+
+  // size of each page
+  int32  page_size      = 3;
+}
+
+message GetPageResponse {
+  // status response
+  Status          status  = 1;
+
+  // list of records
+  repeated Record records = 2;
+}
+
+message GetAroundMeRecordsRequest {
+  // id of the leaderboard
+  string leaderboard_id = 1;
+
+  // id of the record
+  string record_id      = 2;
+
+  // the number of records
+  int32  page_size      = 3;
+}
+
+message GetAroundMeRecordsResponse {
+  // status response
+  Status          status  = 1;
+
+  // list of records
+  repeated Record records = 2;
+}
+
+message GetRankRequest {
+  // id of the leaderboard
+  string leaderboard_id = 1;
+
+  // id of the record
+  string record_id      = 2;
+}
+
+message GetRankResponse {
+  // status response
+  Status status = 1;
+
+  // rank of record
+  int32  rank   = 2;
+}
+
+message TotalRecordsRequest {
+  // id of leaderboard
+  string leaderboard_id = 1;
+}
+
+message TotalRecordsResponse {
+  // status response
+  Status status = 1;
+
+  // number of record in the leaderboard
+  int32  total  = 2;
+}
+
+message RemoveRecordRequest {
+  // id of leaderboard
+  string leaderboard_id = 1;
+
+  // id of record
+  string record_id      = 2;
+}
+
+message RemoveRecordResponse {
+  // status response
+  Status status = 1;
+}
+
+message RemoveRecordsRequest {
+  // id of leaderboard
+  string          leaderboard_id = 1;
+
+  // list ids of records
+  repeated string records_ids    = 2;
+}
+
+message RemoveRecordsResponse {
+  Status status = 1;
+}
+
+// remove all records in [from_rank,to_rank]
+message RemoveRecordsByRangeRequest {
+  // id of leaderboard
+  string leaderboard_id = 1;
+
+  int32  from_rank      = 2;
+
+  int32  to_rank        = 3;
+}
+
+message RemoveRecordsByRangeResponse {
+  Status status = 1;
+}
+
+message GetTopRankingRequest {
+  // if of the leaderboard
+  string leaderboard_id = 1;
+
+  // the maximum number of best records we want to get
+  int32  page_size      = 2;
+}
+
+message GetTopRankingResponse {
+  Status          status  = 1;
+
+  // sorted records
+  repeated Record records = 2;
+}
+
+message UpdateRecordScoreRequest {
+  // id of the leaderboard
+  string leaderboard_id = 1;
+
+  // id of record
+  string record_id      = 2;
+
+  // new score of record
+  int32  score          = 3;
+}
+
+message UpdateRecordScoreResponse {
+  Status status = 1;
+}
+
+
