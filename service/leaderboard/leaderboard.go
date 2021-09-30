@@ -55,11 +55,19 @@ func NewLeaderboards(database *redisdb.RedisDB) *LocalLeaderboards {
 	}
 }
 
-func (l *LocalLeaderboards) GetLeaderboard(leaderboardID string) *api.Leaderboard {
+func (l *LocalLeaderboards) GetLeaderboardCache(leaderboardID string) (*api.Leaderboard, error) {
 	l.RLock()
 	defer l.RUnlock()
 	if leaderboard, ok := l.cache[leaderboardID]; ok {
-		return leaderboard
+		return leaderboard, nil
 	}
-	return nil
+	return nil, fmt.Errorf("nil leaderboard")
+}
+
+func (l *LocalLeaderboards) RemoveLeaderboardCache(leaderboardID string) {
+	l.Lock()
+	defer l.Unlock()
+	if _, ok := l.cache[leaderboardID]; ok {
+		delete(l.cache, leaderboardID)
+	}
 }
